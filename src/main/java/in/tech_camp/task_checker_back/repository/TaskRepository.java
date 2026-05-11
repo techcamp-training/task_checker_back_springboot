@@ -19,11 +19,11 @@ public interface TaskRepository {
   @Select("SELECT * FROM tasks WHERE id = #{id}")
   TaskEntity findById(Integer id);
 
-  @Insert("INSERT INTO tasks (name, explanation, deadline_date, status, genre_id) VALUES (#{name}, #{explanation}, #{deadlineDate}, #{status}, #{genreId})")
+  @Insert("INSERT INTO tasks (name, explanation, deadline_date, status, genre_id, priority) VALUES (#{name}, #{explanation}, #{deadlineDate}, #{status}, #{genreId}, #{priority})")
   @Options(useGeneratedKeys = true, keyProperty = "id")
   void insert(TaskEntity task);
 
-  @Update("UPDATE tasks SET name = #{name}, explanation = #{explanation}, deadline_date = #{deadlineDate}, status = #{status}, genre_id = #{genreId}, updated_at = #{updatedAt} WHERE id = #{id}")
+  @Update("UPDATE tasks SET name = #{name}, explanation = #{explanation}, deadline_date = #{deadlineDate}, status = #{status}, genre_id = #{genreId}, priority = #{priority}, updated_at = #{updatedAt} WHERE id = #{id}")
   void update(TaskEntity task);
 
   @Delete("DELETE FROM tasks WHERE id = #{id}")

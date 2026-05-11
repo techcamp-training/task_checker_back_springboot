@@ -1,6 +1,5 @@
 package in.tech_camp.task_checker_back.controller;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import in.tech_camp.task_checker_back.dto.UpdateStatusDTO;
 import in.tech_camp.task_checker_back.entity.TaskEntity;
-import in.tech_camp.task_checker_back.repository.TaskRepository;
+import in.tech_camp.task_checker_back.service.TaskDuplicateService;
+import in.tech_camp.task_checker_back.service.TaskService;
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -25,83 +25,79 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class TaskController {
 
-  private final TaskRepository taskRepository;
+  private final TaskService taskService;
+  private final TaskDuplicateService taskDuplicateService;
 
   @GetMapping("/")
   public List<TaskEntity> showIndex() {
-    List<TaskEntity> tasks = taskRepository.findAll();
-    return tasks;
+    return taskService.findAll();
   }
 
   @PostMapping("/")
   public ResponseEntity<?> createTask(@RequestBody TaskEntity task) {
     try {
-      taskRepository.insert(task);
+      List<TaskEntity> tasks = taskService.create(task);
+      return ResponseEntity.ok(tasks);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(Map.of("messages", List.of(e.getMessage())));
     } catch (Exception e) {
       System.out.println("エラー：" + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("messages", List.of("Internal Server Error")));
     }
-    List<TaskEntity> tasks = taskRepository.findAll();
-    return ResponseEntity.ok().body(tasks);
   }
 
   @PutMapping("/{taskId}/update")
   public ResponseEntity<?> updateTask(@PathVariable("taskId") Integer id, @RequestBody TaskEntity task) {
-
-    TaskEntity existingTask = taskRepository.findById(task.getId());
-    if(existingTask == null){
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("messages", List.of("Task not found")));
-    }
-
-    existingTask.setName(task.getName());
-    existingTask.setExplanation(task.getExplanation());
-    existingTask.setDeadlineDate(task.getDeadlineDate());
-    existingTask.setStatus(task.getStatus());
-    existingTask.setGenreId(task.getGenreId());
-    existingTask.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-
     try {
-      taskRepository.update(existingTask);
+      List<TaskEntity> tasks = taskService.update(id, task);
+      if (tasks == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("messages", List.of("Task not found")));
+      }
+      return ResponseEntity.ok(tasks);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(Map.of("messages", List.of(e.getMessage())));
     } catch (Exception e) {
       System.out.println("エラー：" + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("messages", List.of("Internal Server Error")));
     }
-
-    List<TaskEntity> tasks = taskRepository.findAll();
-
-    return ResponseEntity.ok().body(tasks);
   }
 
   @DeleteMapping("/{taskId}/delete")
   public ResponseEntity<?> deleteGenre(@PathVariable("taskId") Integer taskId) {
     try {
-      taskRepository.deleteById(taskId);
-      List<TaskEntity> tasks = taskRepository.findAll();
-      return ResponseEntity.ok().body(tasks);
+      List<TaskEntity> tasks = taskService.delete(taskId);
+      return ResponseEntity.ok(tasks);
     } catch (Exception e) {
       System.out.println("エラー：" + e);
       return ResponseEntity.internalServerError().body(Map.of("messages", List.of("Internal Server Error")));
     }
   }
 
-  @PostMapping("/{taskId}/update/status")
-  public ResponseEntity<?> updateStatus(@PathVariable("taskId") Integer taskId, @RequestBody UpdateStatusDTO statusRequest) {
-
-    TaskEntity task = taskRepository.findById(taskId);
-    if(task == null){
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("messages", List.of("Task not found")));
-    }
-
-    task.setStatus(statusRequest.getStatus());
-    task.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+  @PostMapping("/{taskId}/duplicate")
+  public ResponseEntity<?> duplicateTask(@PathVariable("taskId") Integer taskId) {
     try {
-      taskRepository.update(task);
+      List<TaskEntity> tasks = taskDuplicateService.duplicate(taskId);
+      if (tasks == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("messages", List.of("Task not found")));
+      }
+      return ResponseEntity.ok(tasks);
     } catch (Exception e) {
       System.out.println("エラー：" + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("messages", List.of("Internal Server Error")));
     }
-    List<TaskEntity> tasks = taskRepository.findAll();
+  }
 
-    return ResponseEntity.ok().body(tasks);
+  @PostMapping("/{taskId}/update/status")
+  public ResponseEntity<?> updateStatus(@PathVariable("taskId") Integer taskId, @RequestBody UpdateStatusDTO statusRequest) {
+    try {
+      List<TaskEntity> tasks = taskService.updateStatus(taskId, statusRequest.getStatus());
+      if (tasks == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("messages", List.of("Task not found")));
+      }
+      return ResponseEntity.ok(tasks);
+    } catch (Exception e) {
+      System.out.println("エラー：" + e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("messages", List.of("Internal Server Error")));
+    }
   }
 }
