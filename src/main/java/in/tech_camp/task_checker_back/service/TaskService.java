@@ -1,10 +1,14 @@
 package in.tech_camp.task_checker_back.service;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import in.tech_camp.task_checker_back.dto.TaskReportDTO;
 import in.tech_camp.task_checker_back.entity.TaskEntity;
 import in.tech_camp.task_checker_back.repository.TaskRepository;
 import lombok.AllArgsConstructor;
@@ -12,6 +16,10 @@ import lombok.AllArgsConstructor;
 @Service
 @AllArgsConstructor
 public class TaskService {
+
+  private static final int STATUS_MIN = 0;
+  private static final int STATUS_MAX = 5;
+  private static final int STATUS_COMPLETED = 5;
 
     private final TaskRepository taskRepository;
 
@@ -60,5 +68,31 @@ public class TaskService {
         task.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
         taskRepository.update(task);
         return taskRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public TaskReportDTO getReport() {
+        List<TaskEntity> tasks = taskRepository.findAll();
+        int total = tasks.size();
+
+        Map<Integer, Long> countByStatus = new HashMap<>();
+        for (int i = STATUS_MIN; i <= STATUS_MAX; i++) {
+            countByStatus.put(i, 0L);
+        }
+        for (TaskEntity task : tasks) {
+            countByStatus.merge(task.getStatus(), 1L, Long::sum);
+        }
+
+        double completionRate = 0.0;
+        if (total > 0) {
+            long completed = countByStatus.getOrDefault(STATUS_COMPLETED, 0L);
+            completionRate = Math.round((double) completed / total * 1000.0) / 10.0;
+        }
+
+        TaskReportDTO report = new TaskReportDTO();
+        report.setTotalCount(total);
+        report.setCountByStatus(countByStatus);
+        report.setCompletionRate(completionRate);
+        return report;
     }
 }

@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import in.tech_camp.task_checker_back.dto.TaskReportDTO;
 import in.tech_camp.task_checker_back.entity.TaskEntity;
 import in.tech_camp.task_checker_back.service.TaskDuplicateService;
 import in.tech_camp.task_checker_back.service.TaskService;
@@ -172,6 +176,63 @@ class TaskControllerTest {
 
             mockMvc.perform(post("/api/tasks/999/duplicate"))
                 .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages").exists());
+        }
+    }
+
+    @Nested
+    @DisplayName("タスク統計レポート取得")
+    class GetReport {
+
+        private TaskReportDTO report;
+
+        @BeforeEach
+        void setUp() {
+            report = new TaskReportDTO();
+            report.setTotalCount(3);
+            report.setCountByStatus(Map.of(0, 2L, 1, 0L, 2, 0L, 3, 0L, 4, 0L, 5, 1L));
+            report.setCompletionRate(33.3);
+            when(taskService.getReport()).thenReturn(report);
+        }
+
+        @Test
+        @DisplayName("GET /api/tasks/report/ が200 OKを返すこと")
+        void shouldReturn200() throws Exception {
+            mockMvc.perform(get("/api/tasks/report/"))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("レスポンスにtotalCountフィールドが含まれること")
+        void shouldReturnTotalCount() throws Exception {
+            mockMvc.perform(get("/api/tasks/report/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(3));
+        }
+
+        @Test
+        @DisplayName("レスポンスにcountByStatusフィールドが含まれること")
+        void shouldReturnCountByStatus() throws Exception {
+            mockMvc.perform(get("/api/tasks/report/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.countByStatus").exists());
+        }
+
+        @Test
+        @DisplayName("レスポンスにcompletionRateフィールドが含まれること")
+        void shouldReturnCompletionRate() throws Exception {
+            mockMvc.perform(get("/api/tasks/report/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completionRate").value(33.3));
+        }
+
+        @Test
+        @DisplayName("サービスが例外を投げた場合、500 Internal Server Errorを返すこと")
+        void shouldReturn500WhenServiceThrows() throws Exception {
+            when(taskService.getReport()).thenThrow(new RuntimeException("DB error"));
+
+            mockMvc.perform(get("/api/tasks/report/"))
+                .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.messages").exists());
         }
     }

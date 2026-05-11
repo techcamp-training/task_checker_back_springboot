@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import in.tech_camp.task_checker_back.dto.TaskReportDTO;
 import in.tech_camp.task_checker_back.dto.UpdateStatusDTO;
 import in.tech_camp.task_checker_back.entity.TaskEntity;
 import in.tech_camp.task_checker_back.service.TaskDuplicateService;
@@ -98,6 +99,17 @@ public class TaskController {
     } catch (Exception e) {
       System.out.println("エラー：" + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("messages", List.of("Internal Server Error")));
+    }
+  }
+
+  @GetMapping("/report/")
+  public ResponseEntity<?> getReport() {
+    try {
+      return ResponseEntity.ok(taskService.getReport());
+    } catch (Exception e) {
+      System.out.println("エラー：" + e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of("messages", List.of("Internal Server Error")));
     }
   }
 }
