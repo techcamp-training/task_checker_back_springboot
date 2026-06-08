@@ -15,13 +15,13 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 // タスクAPI設定
                 registry.addMapping("/api/tasks/**")
-                .allowedOrigins("http://localhost:3000")
+                .allowedOrigins("http://localhost:5143")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
 
                 // ジャンルAPI設定
                 registry.addMapping("/api/genres/**")
-                    .allowedOrigins("http://localhost:3000")
+                    .allowedOrigins("http://localhost:5143")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*");
             }
